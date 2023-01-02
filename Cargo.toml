@@ -1,24 +1,21 @@
 [package]
 name = "echoip"
-version = "0.1.2"
-authors = ["Michael Laccetti <michael@laccetti.com>"]
+version = "0.2.0"
+authors = ["Franco Lucchini <flucchini@gmail.com>"]
 edition = "2021"
-include = ["/Cargo.toml", "/src/**/*.rs", "/README.md", "/LICENSE"]
+include = ["/Cargo.toml", "/src/**/*.rs"]
 publish = false
 
-[[bin]]
-name = "echoip"
-path = "src/main.rs"
-
 [dependencies]
-actix-files = "0.6.2"
-actix-web = "4.1.0"
-derive_more = "0.99.17"
-dns-lookup = "1.0.8"
-env_logger = "0.9.0"
-handlebars = { version = "4.2.1", features = ["dir_source"] }
-log = "0.4.14"
-maxminddb = "0.23.0"
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
-thiserror = "1.0.30"
+actix-files = "0"
+actix-web = "4"
+anyhow = "1"
+derive_more = "0"
+dns-lookup = "1"
+env_logger = "0"
+log = "0"
+maud = "0"
+maxminddb = "0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"

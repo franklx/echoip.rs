@@ -1,0 +1,13 @@
+lockfileVersion: 5.4
+
+specifiers:
+  purecss: ^3.0.0
+
+dependencies:
+  purecss: 3.0.0
+
+packages:
+
+  /purecss/3.0.0:
+    resolution: {integrity: sha512-IdYbGwbmuA7Hy9ACIO1q7ks4xGLcJSVHxJT2BXIz2c4Ve1aSrNU5bAzA1ILT4Gmdy5K59ruWoRPf9WvJZU5fbA==}
+    dev: false

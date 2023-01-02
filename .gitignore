@@ -1,4 +1,7 @@
+/node_modules
 /target
+.github
+.vscode
 .idea
 *.mmdb
 *.iml
