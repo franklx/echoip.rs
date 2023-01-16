@@ -7,8 +7,8 @@ include = ["/Cargo.toml", "/src/**/*.rs"]
 publish = false
 
 [dependencies]
-actix-files = "0"
 actix-web = "4"
+actix-web-rust-embed-responder = "2"
 anyhow = "1"
 derive_more = "0"
 dns-lookup = "1"
@@ -16,6 +16,7 @@ env_logger = "0"
 log = "0"
 maud = "0"
 maxminddb = "0"
-serde = { version = "1", features = ["derive"] }
+rust-embed-for-web = "11"
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }
 thiserror = "1"

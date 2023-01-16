@@ -1,4 +1,4 @@
-use maud::{html, PreEscaped, DOCTYPE, Render, Markup};
+use maud::{html, Markup, PreEscaped, Render, DOCTYPE};
 
 use crate::model::Index;
 
@@ -309,5 +309,6 @@ pub fn err500_html() -> String {
                 }
             }
         }
-    }.into_string()
+    }
+    .into_string()
 }

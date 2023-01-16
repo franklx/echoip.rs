@@ -5,18 +5,30 @@ mod guard;
 mod model;
 mod templates;
 
-use actix_files as fs;
 use actix_web::{
     http,
     middleware::{ErrorHandlers, Logger},
-    web, App, HttpServer,
+    route, web, App, HttpServer,
 };
+use actix_web_rust_embed_responder::{EmbedResponse, EmbedableFileResponse, IntoResponse};
+use rust_embed_for_web::RustEmbed;
+
 use log::debug;
 
 use crate::{
     api::{html_response, json_response, plain_response, port_lookup},
     guard::AcceptHeader,
 };
+
+#[derive(RustEmbed)]
+#[folder = "static/"]
+struct Embed;
+
+#[route("/{path:.*}", method = "GET", method = "HEAD")]
+async fn static_embed(path: web::Path<String>) -> EmbedResponse<EmbedableFileResponse> {
+    let path = if path.is_empty() { "index.html" } else { path.as_str() };
+    Embed::get(path).into_response()
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -39,7 +51,7 @@ async fn main() -> std::io::Result<()> {
             )
             .service(web::resource("/json").to(json_response))
             .service(web::resource("/port/{port}").to(port_lookup))
-            .service(fs::Files::new("/", "./static"))
+            .service(static_embed)
     })
     .bind("0.0.0.0:8088")?
     .run()

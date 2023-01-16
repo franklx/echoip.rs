@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use actix_files::NamedFile;
 use actix_web::{dev, middleware::ErrorHandlerResponse, web, HttpRequest, HttpResponse, Responder, Result};
 use dns_lookup::lookup_addr;
 use log::{debug, warn};
@@ -12,7 +11,7 @@ use log::{debug, warn};
 use crate::{
     error::EchoIpError,
     geoip_lookup,
-    model::{GeoInfo, Index, IpResult, PortLookup, UserInfo},
+    model::{Index, IpResult, PortLookup, UserInfo},
     templates,
 };
 
@@ -83,8 +82,7 @@ fn generate_response(req: HttpRequest) -> Index {
             geo_info,
             user_info,
         }
-    }
-    else {
+    } else {
         let ip: IpAddr = IpAddr::from_str("127.0.0.1").unwrap();
         Index {
             host: String::from(req.connection_info().host()),
@@ -119,27 +117,24 @@ pub(crate) async fn json_response(http_request: HttpRequest) -> HttpResponse {
 }
 
 pub async fn port_lookup(req: HttpRequest, path: web::Path<u16>) -> HttpResponse {
-    let _port = path.into_inner();
-    let _ip = extract_ip(&req).unwrap();
-    let _real_ip = _ip.real_ip;
-    let _sock_addr = SocketAddr::new(_ip.ip, _port);
+    let port = path.into_inner();
+    let ip = extract_ip(&req).unwrap();
 
-    let stream = TcpStream::connect_timeout(&_sock_addr, Duration::new(5, 0));
+    let stream = TcpStream::connect_timeout(&SocketAddr::new(ip.ip, port), Duration::new(5, 0));
     let reachable = stream.is_ok();
 
-    let result = PortLookup { ip: _real_ip, port: _port, reachable };
+    let result = PortLookup { ip: ip.real_ip, port, reachable };
 
     debug!("Sending port lookup response.");
     HttpResponse::Ok().content_type("application/json").body(serde_json::to_string(&result).unwrap())
 }
 
 pub fn internal_server_error<B>(res: dev::ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
-    let new_resp = NamedFile::open("static/errors/500.html")?
+    let new_resp = templates::err500_html()
         .customize()
         .with_status(res.status())
         .respond_to(res.request())
         .map_into_boxed_body()
         .map_into_right_body();
-
     Ok(ErrorHandlerResponse::Response(res.into_response(new_resp)))
 }
