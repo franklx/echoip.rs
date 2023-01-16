@@ -39,11 +39,11 @@ fn tr_bool<T: Default + PartialEq>(var: &T, label: &str) -> Markup {
                 (label)
             }
             td {
-                @if T::default() != *var {
-                    "false"
+                @if T::default() == *var {
+                    "no"
                 }
-                else {
-                    "true"
+                @else {
+                    "yes"
                 }
             }
         }
@@ -259,7 +259,7 @@ pub fn index_html(data: Index, json: String) -> String {
                                     }
                                     p {
                                         "Yes, the source code and documentation is available on "
-                                        a href="https://github.com/flucchini/echoip.rs" {
+                                        a href="https://github.com/franklx/echoip.rs" {
                                             "GitHub"
                                         }
                                         "."
