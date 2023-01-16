@@ -8,28 +8,22 @@ use actix_files::NamedFile;
 use actix_web::{dev, middleware::ErrorHandlerResponse, web, HttpRequest, HttpResponse, Responder, Result};
 use dns_lookup::lookup_addr;
 use log::{debug, warn};
-use serde_json::json;
 
 use crate::{
     error::EchoIpError,
     geoip_lookup,
-    model::{GeoInfo, Index, IpResult, PortLookup, UserInfo}, templates,
+    model::{GeoInfo, Index, IpResult, PortLookup, UserInfo},
+    templates,
 };
 
 fn extract_ip(req: &HttpRequest) -> std::result::Result<IpResult, AddrParseError> {
-    let _conn_info = req.connection_info();
-    let _realip = _conn_info.realip_remote_addr();
-    let _realip = clean_ip(_realip.unwrap().to_string());
+    let conn_info = req.connection_info();
 
-    let mut _ipaddr: IpAddr = IpAddr::from_str("127.0.0.1").unwrap();
-    debug!("Converting IP {} to IpAddr.", _realip);
-
-    let _parsed_ip = _realip.parse::<IpAddr>();
-    if _parsed_ip.is_ok() {
-        return Ok(IpResult { ip: _parsed_ip.unwrap(), real_ip: _realip })
+    if let Some(real_ip) = conn_info.realip_remote_addr().map(clean_ip) {
+        real_ip.parse::<IpAddr>().map(|ip| IpResult { ip, real_ip: real_ip.to_owned() })
+    } else {
+        panic!("Cannot determine IP Address!");
     }
-
-    Err(_parsed_ip.err().unwrap())
 }
 
 fn ip_to_decimal(ip: IpAddr) -> String {
@@ -45,18 +39,10 @@ fn ip_to_decimal(ip: IpAddr) -> String {
 * 127.0.0.1:47324
 * IPv4/v6 without trailing ports
  */
-fn clean_ip(mut ip: String) -> String {
-    let pos = ip.rfind(':');
-    if let Some(value) = pos {
-        debug!("Removing trailing colon from IP.");
-        ip = ip.split_at(value).0.to_string();
-    }
-
-    debug!("Removing square braces from IP.");
-    ip = ip.replace(&['[', ']'][..], "");
-
+fn clean_ip(ip: &str) -> &str {
+    debug!("Removing trailing colon and square brackets from IP.");
+    let ip = &ip[ip.find('[').unwrap_or(0)..ip.rfind([']', ':']).unwrap_or(ip.len())];
     debug!("Cleaned IP: {}", ip);
-
     ip
 }
 
@@ -76,49 +62,41 @@ fn get_user_info(req: &HttpRequest, ip: &IpAddr) -> UserInfo {
 }
 
 fn generate_response(req: HttpRequest) -> Index {
-    let mut geo_info: Option<GeoInfo> = None;
-    let mut user_info: Option<UserInfo> = None;
+    if let Ok(IpResult { ip, real_ip }) = extract_ip(&req) {
+        debug!("Converted IP {} properly, getting GeoIP info.", real_ip);
 
-    let mut _ipaddr: IpAddr = IpAddr::from_str("127.0.0.1").unwrap();
-    let mut _realip;
+        let geo_info = geoip_lookup::GeoipLookup::new().lookup_geo_for_ip(ip).ok();
 
-    let _parsed_ip = extract_ip(&req);
-    let _has_valid_ip = _parsed_ip.is_ok();
-    if _has_valid_ip {
-        let _unwrapped_ip = _parsed_ip.unwrap();
-        _ipaddr = _unwrapped_ip.ip;
-        _realip = _unwrapped_ip.real_ip;
+        if geo_info.is_some() {
+            debug!("Collected GeoIP info for {real_ip}.");
+        } else {
+            warn!("Could not retrieve GeoIP info for {real_ip}.")
+        };
 
-        debug!("Converted IP {} properly, getting GeoIP info.", _realip);
+        debug!("Getting user data for {real_ip}.");
+        let user_info = Some(get_user_info(&req, &ip));
 
-        let lookup: geoip_lookup::GeoipLookup = geoip_lookup::GeoipLookup::new();
-
-        let _geo_info = lookup.lookup_geo_for_ip(_ipaddr);
-        if _geo_info.is_ok() {
-            debug!("Collected GeoIP info for {}.", _realip);
-            geo_info = Some(_geo_info.unwrap());
+        Index {
+            host: String::from(req.connection_info().host()),
+            ip: ip.to_string(),
+            decimal_ip: ip_to_decimal(ip),
+            geo_info,
+            user_info,
         }
-        else {
-            warn!("Could not retrieve GeoIP info for {}.", _realip);
-        }
-
-        debug!("Getting user data for {}.", _realip);
-        user_info = Some(get_user_info(&req, &_ipaddr));
     }
-
-    Index {
-        host: String::from(req.connection_info().host()),
-        ip: _ipaddr.to_string(),
-        decimal_ip: ip_to_decimal(_ipaddr),
-        has_geo_info: geo_info.is_some(),
-        geo_info,
-        user_info,
+    else {
+        let ip: IpAddr = IpAddr::from_str("127.0.0.1").unwrap();
+        Index {
+            host: String::from(req.connection_info().host()),
+            ip: ip.to_string(),
+            decimal_ip: ip_to_decimal(ip),
+            geo_info: None,
+            user_info: None,
+        }
     }
 }
 
-pub(crate) async fn html_response(
-    http_request: HttpRequest,
-) -> Result<HttpResponse, EchoIpError> {
+pub(crate) async fn html_response(http_request: HttpRequest) -> Result<HttpResponse, EchoIpError> {
     let data = generate_response(http_request);
     let json = serde_json::to_string(&data).unwrap();
     let body = templates::index_html(data, json);
@@ -128,12 +106,9 @@ pub(crate) async fn html_response(
 }
 
 pub(crate) async fn plain_response(http_request: HttpRequest) -> HttpResponse {
-    let _realip = http_request.connection_info().realip_remote_addr().unwrap().to_string();
-    debug!("Extracting IP from plain response: {}", _realip);
-
-    let _realip = clean_ip(_realip);
-    debug!("IP from the client: {}", _realip);
-    HttpResponse::Ok().content_type("text/plain").body(_realip)
+    let real_ip = clean_ip(http_request.connection_info().realip_remote_addr().unwrap()).to_owned();
+    debug!("IP from the client: {}", real_ip);
+    HttpResponse::Ok().content_type("text/plain").body(real_ip)
 }
 
 pub(crate) async fn json_response(http_request: HttpRequest) -> HttpResponse {

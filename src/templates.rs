@@ -1,6 +1,54 @@
-use maud::{html, PreEscaped, DOCTYPE};
+use maud::{html, PreEscaped, DOCTYPE, Render, Markup};
 
 use crate::model::Index;
+
+fn tr_some<T: Render>(var: &Option<T>, label: &str) -> Markup {
+    html! {
+        @if let Some(var) = var {
+            tr {
+                th scope="row" {
+                    (label)
+                }
+                td {
+                    (var)
+                }
+            }
+        }
+    }
+}
+
+fn tr_any<T: Default + PartialEq + Render>(var: &T, label: &str) -> Markup {
+    html! {
+        @if T::default() != *var {
+            tr {
+                th scope="row" {
+                    (label)
+                }
+                td {
+                    (var)
+                }
+            }
+        }
+    }
+}
+
+fn tr_bool<T: Default + PartialEq>(var: &T, label: &str) -> Markup {
+    html! {
+        tr {
+            th scope="row" {
+                (label)
+            }
+            td {
+                @if T::default() != *var {
+                    "false"
+                }
+                else {
+                    "true"
+                }
+            }
+        }
+    }
+}
 
 pub fn index_html(data: Index, json: String) -> String {
     html! {
@@ -27,7 +75,7 @@ pub fn index_html(data: Index, json: String) -> String {
                 link rel="stylesheet" href="grids-responsive-min.css";
                 link rel="stylesheet" href="/css/style.css";
                 script type="text/javascript" {
-                    (PreEscaped(format!(r#"let host = "{}"; let jsonObj = '{}';"#, data.host, json)))
+                    (PreEscaped(format!(r#"const HOST = "{}"; const JSON_OBJ = '{}';"#, data.host, json)))
                 }
             }
             body {
@@ -58,197 +106,28 @@ pub fn index_html(data: Index, json: String) -> String {
                                 }
                                 table.info-table {
                                     tbody {
-                                        @if data.ip != "" {
-                                            tr {
-                                                th scope="row" {
-                                                    "ip\u{a0}address"
-                                                }
-                                                td {
-                                                    (data.ip)
-                                                }
-                                            }
-                                        }
-                                        @if data.decimal_ip != "" {
-                                            tr {
-                                                th scope="row" {
-                                                    "ip\u{a0}address (decimal)"
-                                                }
-                                                td {
-                                                    (data.decimal_ip)
-                                                }
-                                            }
-                                        }
+                                        (tr_any(&data.ip, "ip\u{a0}address"))
+                                        (tr_any(&data.decimal_ip, "ip\u{a0}address (decimal)"))
                                         @if let Some(ref geo_info) = data.geo_info {
-                                            @if geo_info.country_name != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Country"
-                                                    }
-                                                    td {
-                                                        (geo_info.country_name)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.country_iso != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Country (ISO code)"
-                                                    }
-                                                    td {
-                                                        (geo_info.country_iso)
-                                                    }
-                                                }
-                                            }
-                                            tr {
-                                                th scope="row" {
-                                                    "In EU?"
-                                                }
-                                                td {
-                                                    @if geo_info.country_in_eu { "true" } else { "false" }
-                                                }
-                                            }
-                                            @if geo_info.region != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Region"
-                                                    }
-                                                    td {
-                                                        (geo_info.region)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.region_code != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Region\u{a0}code"
-                                                    }
-                                                    td {
-                                                        (geo_info.region_code)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.metro_code != 0 {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Metro code"
-                                                    }
-                                                    td {
-                                                        (geo_info.metro_code)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.postal_code != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Postal\u{a0}code"
-                                                    }
-                                                    td {
-                                                        (geo_info.postal_code)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.city != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "City"
-                                                    }
-                                                    td {
-                                                        (geo_info.city)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.latitude != 0f64 {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Latitude"
-                                                    }
-                                                    td {
-                                                        (geo_info.latitude)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.longitude != 0f64 {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Longitude"
-                                                    }
-                                                    td {
-                                                        (geo_info.longitude)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.timezone != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Timezone"
-                                                    }
-                                                    td {
-                                                        (geo_info.timezone)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.asn != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "ASN"
-                                                    }
-                                                    td {
-                                                        (geo_info.asn)
-                                                    }
-                                                }
-                                            }
-                                            @if geo_info.asn_org != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "ASN (organization)"
-                                                    }
-                                                    td {
-                                                        (geo_info.asn_org)
-                                                    }
-                                                }
-                                            }
+                                            (tr_some(&geo_info.country_name, "Country"))
+                                            (tr_some(&geo_info.country_iso, "Country (ISO code)"))
+                                            (tr_bool(&geo_info.country_in_eu, "In EU?"))
+                                            (tr_some(&geo_info.region_name, "Region"))
+                                            (tr_some(&geo_info.region_code, "Region\u{a0}code"))
+                                            (tr_some(&geo_info.metro_code, "Metro code"))
+                                            (tr_some(&geo_info.postal_code, "Postal\u{a0}code"))
+                                            (tr_some(&geo_info.city, "City"))
+                                            (tr_some(&geo_info.latitude, "Latitude"))
+                                            (tr_some(&geo_info.longitude, "Longitude"))
+                                            (tr_some(&geo_info.timezone, "Timezone"))
+                                            (tr_some(&geo_info.asn, "ASN"))
+                                            (tr_some(&geo_info.asn_org, "ASN (organization)"))
                                         }
                                         @if let Some(ref user_info) = data.user_info {
-                                            @if user_info.hostname != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "Hostname"
-                                                    }
-                                                    td {
-                                                        (user_info.hostname)
-                                                    }
-                                                }
-                                            }
-                                            @if user_info.user_agent != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "User\u{a0}agent"
-                                                    }
-                                                    td {
-                                                        (user_info.user_agent)
-                                                    }
-                                                }
-                                            }
-                                            @if user_info.user_agent_comment != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "User\u{a0}agent: Comment"
-                                                    }
-                                                    td {
-                                                        (user_info.user_agent_comment)
-                                                    }
-                                                }
-                                            }
-                                            @if user_info.user_agent_raw != "" {
-                                                tr {
-                                                    th scope="row" {
-                                                        "User\u{a0}agent: Raw"
-                                                    }
-                                                    td {
-                                                        (user_info.user_agent_raw)
-                                                    }
-                                                }
-                                            }
+                                            (tr_any(&user_info.hostname, "Hostname"))
+                                            (tr_any(&user_info.user_agent, "User\u{a0}agent"))
+                                            (tr_any(&user_info.user_agent_comment, "User\u{a0}agent: Comment"))
+                                            (tr_any(&user_info.user_agent_raw, "User\u{a0}agent: Raw"))
                                         }
                                     }
                                 }
@@ -276,7 +155,7 @@ pub fn index_html(data: Index, json: String) -> String {
                                             "ip"
                                         }
                                         @if let Some(ref geo_info) = data.geo_info {
-                                            @if geo_info.country_name != "" {
+                                            @if geo_info.country_name.is_some() {
                                                 button.pure-button.widget-select name="country" onclick="changeInput(this.name, this)" {
                                                     "country"
                                                 }
@@ -284,12 +163,12 @@ pub fn index_html(data: Index, json: String) -> String {
                                                     "country-iso"
                                                 }
                                             }
-                                            @if geo_info.city != "" {
+                                            @if geo_info.city.is_some() {
                                                 button.pure-button.widget-select name="city" onclick="changeInput(this.name, this)" {
                                                     "city"
                                                 }
                                             }
-                                            @if geo_info.asn != "" {
+                                            @if geo_info.asn.is_some() {
                                                 button.pure-button.widget-select name="asn" onclick="changeInput(this.name, this)" {
                                                     "asn"
                                                 }
@@ -310,7 +189,7 @@ pub fn index_html(data: Index, json: String) -> String {
                                     form.pure-form.input-buttons {
                                         fieldset {
                                             label for="ipInput" {
-                                                "Check another ip (optional)"
+                                                "Check another ip (optional) "
                                                 input #ipInput type="text" placeholder="ip to query" onkeyup="updateIP(this.value)";
                                             }
                                             button.pure-button type="button" onclick="navigate()" {
@@ -320,7 +199,7 @@ pub fn index_html(data: Index, json: String) -> String {
                                     }
                                 }
                                 @if let Some(ref geo_info) = data.geo_info {
-                                    @if geo_info.latitude != 0f64 {
+                                    @if let (Some(ref bbox), Some(ref lat), Some(ref lng)) = (&geo_info.bbox, geo_info.latitude, geo_info.longitude) {
                                         ."pure-u-1"."pure-u-md-1-1" {
                                             h2 {
                                                 "Map"
@@ -328,8 +207,8 @@ pub fn index_html(data: Index, json: String) -> String {
                                             iframe width="100%" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"
                                                 src=(
                                                     PreEscaped(format!("https://www.openstreetmap.org/export/embed.html?bbox={bx0}%2C{bx1}%2C{bx2}%2C{bx3}&layer=mapnik&marker={mk0}%2C{mk1}",
-                                                        bx0=geo_info.box_lon_left, bx1=geo_info.box_lat_bottom, bx2=geo_info.box_lon_right, bx3=geo_info.box_lat_top,
-                                                        mk0=geo_info.latitude, mk1=geo_info.longitude)
+                                                        bx0=bbox.l, bx1=bbox.b, bx2=bbox.r, bx3=bbox.t,
+                                                        mk0=lat, mk1=lng)
                                                 )) {}
                                         }
                                     }
@@ -343,13 +222,13 @@ pub fn index_html(data: Index, json: String) -> String {
                                         "How do I force IPv4 or IPv6 lookup?"
                                     }
                                     p {
-                                        "IPv4 or IPv6 can be forced by passing the appropriate flag to your client, e.g"
+                                        "IPv4 or IPv6 can be forced by passing the appropriate flag to your client, e.g "
                                         code {
-                                            "curl -4"
+                                            "curl -L4"
                                         }
-                                        "or"
+                                        " or "
                                         code {
-                                            "curl -6"
+                                            "curl -L6"
                                         }
                                         "."
                                     }
@@ -357,11 +236,11 @@ pub fn index_html(data: Index, json: String) -> String {
                                         "Can I force getting JSON?"
                                     }
                                     p {
-                                        "Setting the"
+                                        "Setting the "
                                         code {
                                             "Accept: application/json"
                                         }
-                                        "header works as expected."
+                                        " header works as expected."
                                     }
                                     h3 {
                                         "Is automated use of this service permitted?"
@@ -379,7 +258,7 @@ pub fn index_html(data: Index, json: String) -> String {
                                         "Can I run my own service?"
                                     }
                                     p {
-                                        "Yes, the source code and documentation is available on"
+                                        "Yes, the source code and documentation is available on "
                                         a href="https://github.com/flucchini/echoip.rs" {
                                             "GitHub"
                                         }
